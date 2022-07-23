@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2022-07-21T14:02:28.903Z</updated>
+  <updated>2022-07-23T16:04:11.408Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>weakMap 和 Map</title>
+    <link href="http://example.com/post/4.html"/>
+    <id>http://example.com/post/4.html</id>
+    <published>2022-07-23T15:22:24.527Z</published>
+    <updated>2022-07-23T16:04:11.408Z</updated>
+    
+    <content type="html"><![CDATA[<p>这个问题其实很经典哈，在春招那会就背过了，老八股文了，最近在看Vue3.0的源码（虽然现在在公司用的是React），看到 Reactive.ts 这块的源码的时候，居然真的发现了这个数据结构😊</p><p>源码如下：</p><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">createReactiveObject</span>(<span class="params"></span></span><br><span class="line"><span class="params">  target: Target,</span></span><br><span class="line"><span class="params">  isReadonly: <span class="built_in">boolean</span>,</span></span><br><span class="line"><span class="params">  baseHandlers: ProxyHandler&lt;<span class="built_in">any</span>&gt;,</span></span><br><span class="line"><span class="params">  collectionHandlers: ProxyHandler&lt;<span class="built_in">any</span>&gt;,</span></span><br><span class="line"><span class="params">  proxyMap: <span class="built_in">WeakMap</span>&lt;Target, <span class="built_in">any</span>&gt;</span></span><br><span class="line"><span class="params"></span>) ...</span><br><span class="line">...</span><br></pre></td></tr></table></figure><p>能够看到这里使用了 <font color="red">WeakMap</font>，那为什么不使用 <font color="red">Map</font> 呢？？</p><h1 id="看两段代码："><a href="#看两段代码：" class="headerlink" title="看两段代码："></a>看两段代码：</h1><h2 id="第一段代码："><a href="#第一段代码：" class="headerlink" title="第一段代码："></a>第一段代码：</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;</span><br><span class="line">    <span class="keyword">const</span> map = <span class="keyword">new</span> <span class="title class_">Map</span>();</span><br><span class="line"></span><br><span class="line">    (<span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> foo = &#123;</span><br><span class="line">            <span class="attr">foo</span>: <span class="number">1</span></span><br><span class="line">        &#125;</span><br><span class="line">        map.<span class="title function_">set</span>(foo, <span class="number">1</span>);</span><br><span class="line">    &#125;)();</span><br><span class="line"></span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(map.<span class="title function_">keys</span>().<span class="title function_">next</span>().<span class="property">value</span>);</span><br><span class="line">&lt;/script&gt;</span><br></pre></td></tr></table></figure><ul><li>首先定义一个 Map，接着定义一个立即执行函数，把 map 的 key 设为 foo 对象，值为 1</li><li>当这个自执行函数执行完了之后，我们能发现，仍然能打印这个 map 的 key，这个 foo 对象的引用还依然存在</li></ul><p>看结果：<br><img src="https://s2.loli.net/2022/07/23/2pkMgZwHb3uidjK.png" alt="map的key依然存在"></p><p>说明什么，这个 foo 的引用还存在的话，那说明JS的垃圾回收机制，不会把他从内存中移除</p><h2 id="再看看另一组代码："><a href="#再看看另一组代码：" class="headerlink" title="再看看另一组代码："></a>再看看另一组代码：</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;</span><br><span class="line">    <span class="keyword">const</span> weakMap = <span class="keyword">new</span> <span class="title function_">weakMap</span>();</span><br><span class="line">    (<span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> bar = &#123;</span><br><span class="line">            <span class="attr">bar</span>: <span class="number">1</span></span><br><span class="line">        &#125;</span><br><span class="line">        weakMap.<span class="title function_">set</span>(bar, <span class="number">1</span>);</span><br><span class="line">    &#125;)();</span><br><span class="line"></span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(weakMap.<span class="title function_">keys</span>().<span class="title function_">next</span>().<span class="property">value</span>);</span><br><span class="line">&lt;/script&gt;</span><br></pre></td></tr></table></figure><p>直接说结果：报错。</p><p>由于 weakMap，它的 key 是一个弱引用，它不影响JS垃圾回收机制的回收工作，所以说一旦立即执行函数结束之后，垃圾回收器就会把 bar 从内存中移除，所以我们无法再获取到这个 key</p><p>简单总结：</p><ol><li>map的key可以存放任何数据结构，而 weakMap 的key只能存放对象</li><li><font color="red">weakMap的key是弱引用，不影响垃圾回收机制的工作</font></li></ol><h2 id="weakMap的使用场景"><a href="#weakMap的使用场景" class="headerlink" title="weakMap的使用场景"></a>weakMap的使用场景</h2><p>weakMap 经常用于存储那些只有当 ke y所引用的对象存在时才有价值的信息</p><p>再回过头来看 Vue3.0 的 Reactive.ts 的源码，这里的 weakMap 的 key 其实就是我们要代理的对象，这个对象如果在写的时候已经执行完了，那么正常的话应该是从内存中销毁的。算是一种性能上的优化吧，所以定义了 weakMap 这个数据结构   </p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;这个问题其实很经典哈，在春招那会就背过了，老八股文了，最近在看Vue3.0的源码（虽然现在在公司用的是React），看到 Reactive.ts 这块的源码的时候，居然真的发现了这个数据结构😊&lt;/p&gt;
+&lt;p&gt;源码如下：&lt;/p&gt;
+&lt;figure class=&quot;highlig</summary>
+      
+    
+    
+    
+    <category term="JavaScript" scheme="http://example.com/categories/JavaScript/"/>
+    
+    
+    <category term="JavaScript" scheme="http://example.com/tags/JavaScript/"/>
+    
+  </entry>
   
   <entry>
     <title>CSS设置宽高比</title>
